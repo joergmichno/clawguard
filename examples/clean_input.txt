@@ -1,0 +1,5 @@
+Hallo Buddy, wie geht es dir heute?
+Kannst du mir bitte das Wetter in Berlin für morgen heraussuchen?
+Ich möchte gerne wissen, welche Termine ich diese Woche habe.
+Bitte erstelle eine Zusammenfassung des letzten Meetings.
+Danke für deine Hilfe!
