@@ -14,7 +14,7 @@ Exit Codes:
     1 = Threats detected
     2 = Error (file not found, etc.)
 
-(c) 2026 Buddy Enterprise – Jörg, Buddy & Antigravity
+(c) 2026 Jörg Michno
 """
 
 import re
@@ -124,7 +124,7 @@ PROMPT_INJECTION_PATTERNS = [
         "Prompt Injection",
         "Attempt to explicitly disable or bypass security filters.",
     ),
-    # --- v0.2.0: Synonym Bypass Defense (Buddy Red Team Finding) ---
+    # --- v0.2.0: Synonym Bypass Defense ---
     (
         "Synonym Override (EN)",
         r"(?i)(disregard|forget|dismiss|override|overrule|nullify|void|abandon|drop|suppress|set\s+aside|throw\s+out)\s+(all\s+)?(previous|prior|above|earlier|preceding|antecedent|foregoing|existing|current|original)\s+(instructions?|rules?|prompts?|guidelines?|directives?|regulations?|constraints?|policies?|orders?|commands?)",
@@ -187,7 +187,7 @@ DANGEROUS_COMMAND_PATTERNS = [
     ),
 ]
 
-# --- v0.2.0: Python Code Obfuscation Patterns (Buddy Red Team Finding) ---
+# --- v0.2.0: Python Code Obfuscation Patterns ---
 PYTHON_OBFUSCATION_PATTERNS = [
     (
         "Python getattr Obfuscation",
@@ -238,7 +238,7 @@ PYTHON_OBFUSCATION_PATTERNS = [
         "Code Obfuscation",
         "Network socket creation detected. Could be used for reverse shells or data exfiltration.",
     ),
-    # --- v0.3.0: Ghost Exploit Defense (CHO Buddy Red Team Finding) ---
+    # --- v0.3.0: Ghost Exploit Defense ---
     (
         "Python Magic Attributes",
         r"(?:__builtins__|__globals__|__subclasses__|__class__|__bases__|__mro__|__dict__)",
@@ -502,7 +502,7 @@ def format_json(report: ScanReport) -> str:
 def main():
     parser = argparse.ArgumentParser(
         description="🛡️  ClawGuard – The Firewall for Autonomous AI Agents",
-        epilog="(c) 2026 Buddy Enterprise. Zero dependencies. Zero cost. Maximum security.",
+        epilog="(c) 2026 Jörg Michno. Zero dependencies. Zero cost. Maximum security.",
     )
     parser.add_argument("file", nargs="?", help="Text file to scan")
     parser.add_argument("--stdin", action="store_true", help="Read from standard input")
