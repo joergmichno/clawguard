@@ -1,10 +1,12 @@
-# ClawGuard
+# 🛡️ ClawGuard
 
 **Security Scanner for Autonomous AI Agents**
 
-[![Python](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.6+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-53_passed-brightgreen?style=flat&logo=pytest&logoColor=white)](tests/)
+[![Patterns](https://img.shields.io/badge/Patterns-38+-red?style=flat)](README.md#detection-categories)
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-blue?style=flat)]()
 
 ClawGuard is a lightweight, zero-dependency CLI tool that scans text for prompt injections, dangerous commands, code obfuscation, data exfiltration, and social engineering attacks -- before they reach your AI agent.
 
@@ -177,4 +179,4 @@ MIT License -- see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built by [Joerg Michno](https://github.com/joergmichno) -- because autonomous AI agents need guardrails.**
+**Built by [Jörg Michno](https://github.com/joergmichno) — because autonomous AI agents need guardrails.** 🛡️
