@@ -500,6 +500,10 @@ def format_json(report: ScanReport) -> str:
 # ─── CLI Entry Point ─────────────────────────────────────────────────────────
 
 def main():
+    # Fix emoji output on Windows (cp1252 can't encode Unicode symbols)
+    if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(
         description="🛡️  ClawGuard – The Firewall for Autonomous AI Agents",
         epilog="(c) 2026 Jörg Michno. Zero dependencies. Zero cost. Maximum security.",
