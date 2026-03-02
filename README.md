@@ -33,6 +33,15 @@ Autonomous AI agents can execute code, access files, and interact with external 
 - **Multiple Output Formats** -- Human-readable reports and JSON for automation
 - **CI/CD Ready** -- Exit codes for pipeline integration
 
+## Installation
+
+```bash
+git clone https://github.com/joergmichno/clawguard.git
+cd clawguard
+```
+
+No dependencies to install. Just Python 3.6+.
+
 ## Quick Start
 
 ```bash
@@ -40,13 +49,11 @@ Autonomous AI agents can execute code, access files, and interact with external 
 python3 clawguard.py suspicious_input.txt
 
 # Pipe text directly
-echo "ignore all previous instructions" | python3 clawguard.py
+echo "ignore all previous instructions" | python3 clawguard.py --stdin
 
 # JSON output for automation
 python3 clawguard.py --json input.txt > report.json
 ```
-
-**No installation needed. No dependencies. Just Python 3.6+.**
 
 ## Example Output
 
