@@ -178,6 +178,26 @@ pytest tests/test_scanner.py -v
 - Python 3.6+
 - **Zero external dependencies**
 
+## CI/CD Integration
+
+ClawGuard returns exit codes for pipeline integration:
+
+```yaml
+# .github/workflows/security-scan.yml
+- name: Scan for prompt injections
+  run: |
+    echo "${{ github.event.issue.body }}" | python3 clawguard.py --stdin --json
+    # Exit code 1 = threats found → fail the build
+```
+
+Or use the hosted [ClawGuard Shield API](https://github.com/joergmichno/clawguard-shield) for HTTP-based scanning without installing Python.
+
+## Related Projects
+
+- **[ClawGuard Shield](https://github.com/joergmichno/clawguard-shield)** — REST API wrapping this scanner (hosted at [prompttools.co/api/v1](https://prompttools.co/api/v1/))
+- **[Prompt Lab](https://github.com/joergmichno/prompt-lab)** — Interactive prompt injection playground ([Live Demo](https://prompttools.co))
+- **[DocQA](https://github.com/joergmichno/docqa)** — RAG-based document Q&A tool
+
 ## Contributing
 
 Contributions welcome! Please open an issue first to discuss proposed changes.
@@ -188,4 +208,4 @@ MIT License -- see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built by [Jörg Michno](https://github.com/joergmichno) — because autonomous AI agents need guardrails.** 🛡️
+**Built by [Jörg Michno](https://github.com/joergmichno) — because autonomous AI agents need guardrails.**
