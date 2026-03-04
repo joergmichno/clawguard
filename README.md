@@ -33,6 +33,19 @@ Autonomous AI agents can execute code, access files, and interact with external 
 - **Multiple Output Formats** -- Human-readable reports and JSON for automation
 - **CI/CD Ready** -- Exit codes for pipeline integration
 
+## Ecosystem & Live Demo
+
+🎯 **Try the Interactive Demo:** [prompttools.co](https://prompttools.co) — Test prompt injections in real time
+
+### Ecosystem
+
+| Component | Description |
+|-----------|-------------|
+| [**ClawGuard Shield**](https://github.com/joergmichno/clawguard-shield) | REST API for production use — [prompttools.co/api/v1/](https://prompttools.co/api/v1/) |
+| [**Python SDK**](https://github.com/joergmichno/clawguard-shield-python) | `pip install clawguard-shield` — SDK for the Shield API |
+| [**GitHub Action**](https://github.com/joergmichno/clawguard-scan-action) | CI/CD integration — scan prompts in your pipeline |
+| [**Prompt Lab**](https://github.com/joergmichno/prompt-lab) | Interactive web playground for prompt injection testing |
+
 ## Installation
 
 ```bash
