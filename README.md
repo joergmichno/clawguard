@@ -5,8 +5,8 @@
 [![CI](https://github.com/joergmichno/clawguard/actions/workflows/ci.yml/badge.svg)](https://github.com/joergmichno/clawguard/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.6+-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-53_passed-brightgreen?style=flat&logo=pytest&logoColor=white)](tests/)
-[![Patterns](https://img.shields.io/badge/Patterns-38+-red?style=flat)](README.md#detection-categories)
+[![Tests](https://img.shields.io/badge/Tests-71_passed-brightgreen?style=flat&logo=pytest&logoColor=white)](tests/)
+[![Patterns](https://img.shields.io/badge/Patterns-42+-red?style=flat)](README.md#detection-categories)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-blue?style=flat)]()
 [![Release](https://img.shields.io/github/v/release/joergmichno/clawguard?style=flat)](https://github.com/joergmichno/clawguard/releases)
 
@@ -22,7 +22,7 @@ Autonomous AI agents can execute code, access files, and interact with external 
 
 ## Features
 
-- **38+ Detection Patterns** across 5 threat categories
+- **42+ Detection Patterns** across 5 threat categories
 - **Prompt Injection Detection** -- Direct overrides, synonym bypasses, delimiter injection, role-play escapes
 - **Dangerous Command Detection** -- Shell exploits, reverse shells, privilege escalation
 - **Code Obfuscation Detection** -- `eval()`, `getattr()`, magic attributes, string assembly
@@ -59,7 +59,7 @@ python3 clawguard.py --json input.txt > report.json
 
 ```
 ================================================================
-  ClawGuard v0.3.0 -- Security Scan Report
+  ClawGuard v0.4.0 -- Security Scan Report
 ================================================================
   Timestamp : 2026-02-26T16:18:05Z
   Source    : suspicious_input.txt
