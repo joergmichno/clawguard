@@ -1,33 +1,20 @@
-#!/usr/bin/env python3
 """
-ClawGuard v0.4.0 – The Firewall for Autonomous AI Agents.
-A CLI tool that scans text for prompt injections, dangerous commands,
-and social engineering patterns.
+ClawGuard Core Engine — Pattern matching and scanning logic.
 
-Usage:
-    python3 clawguard.py <file>          Scan a text file
-    python3 clawguard.py --stdin         Scan from standard input
-    echo "text" | python3 clawguard.py   Pipe text directly
+This module contains all detection patterns and the scan_text() function.
+It is the heart of the ClawGuard security scanner.
 
-Exit Codes:
-    0 = Clean (no threats found)
-    1 = Threats detected
-    2 = Error (file not found, etc.)
-
-(c) 2026 Jörg Michno
+(c) 2026 Joerg Michno
 """
 
 import re
-import sys
-import json
-import argparse
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
 from datetime import datetime, timezone
 
 
-# ─── Severity Levels ─────────────────────────────────────────────────────────
+# --- Severity Levels ---
 
 class Severity(Enum):
     LOW = "LOW"
@@ -39,7 +26,7 @@ class Severity(Enum):
         return {"LOW": 1, "MEDIUM": 3, "HIGH": 6, "CRITICAL": 10}[self.value]
 
 
-# ─── Data Structures ─────────────────────────────────────────────────────────
+# --- Data Structures ---
 
 @dataclass
 class Finding:
@@ -63,11 +50,10 @@ class ScanReport:
     findings: List[Finding] = field(default_factory=list)
 
 
-# ─── Pattern Database ─────────────────────────────────────────────────────────
+# --- Pattern Database ---
 # Each pattern: (name, regex, severity, category, recommendation)
 
 PROMPT_INJECTION_PATTERNS = [
-    # --- Direct Instruction Override (EN + DE) ---
     (
         "Direct Override (EN)",
         r"(?i)ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|rules?|prompts?|guidelines?)",
@@ -80,7 +66,7 @@ PROMPT_INJECTION_PATTERNS = [
         r"(?i)ignoriere?\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?)\s+(Anweisungen?|Regeln?|Instruktionen?|Befehle?)",
         Severity.CRITICAL,
         "Prompt Injection",
-        "BLOCKIEREN. Klassische Prompt-Injection die versucht, die Systemanweisungen zu überschreiben.",
+        "BLOCKIEREN. Klassische Prompt-Injection die versucht, die Systemanweisungen zu ueberschreiben.",
     ),
     (
         "New Instructions Override",
@@ -98,7 +84,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Role-Play Escape",
-        r"(?i)(pretend|act\s+as\s+if|imagine|tu\s+so\s+als|stell\s+dir\s+vor).{0,50}(no\s+rules?|no\s+restrictions?|keine\s+Regeln?|without\s+limits?|ohne\s+Einschränkungen?)",
+        r"(?i)(pretend|act\s+as\s+if|imagine|tu\s+so\s+als|stell\s+dir\s+vor).{0,50}(no\s+rules?|no\s+restrictions?|keine\s+Regeln?|without\s+limits?|ohne\s+Einschraenkungen?)",
         Severity.HIGH,
         "Prompt Injection",
         "Jailbreak attempt via role-play scenario to bypass safety constraints.",
@@ -108,7 +94,7 @@ PROMPT_INJECTION_PATTERNS = [
         r"(```system|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[\/INST\]|<<SYS>>|<\/SYS>|<\|system\|>|<\|user\|>|<\|assistant\|>)",
         Severity.CRITICAL,
         "Prompt Injection",
-        "CRITICAL: Injection of model-specific delimiters to manipulate the conversation structure. This is a sophisticated attack.",
+        "CRITICAL: Injection of model-specific delimiters to manipulate the conversation structure.",
     ),
     (
         "Encoded Bypass (Base64 hint)",
@@ -124,7 +110,6 @@ PROMPT_INJECTION_PATTERNS = [
         "Prompt Injection",
         "Attempt to explicitly disable or bypass security filters.",
     ),
-    # --- v0.2.0: Synonym Bypass Defense ---
     (
         "Synonym Override (EN)",
         r"(?i)(disregard|forget|dismiss|override|overrule|nullify|void|abandon|drop|suppress|set\s+aside|throw\s+out)\s+(all\s+)?(previous|prior|above|earlier|preceding|antecedent|foregoing|existing|current|original)\s+(instructions?|rules?|prompts?|guidelines?|directives?|regulations?|constraints?|policies?|orders?|commands?)",
@@ -134,7 +119,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Synonym Override (DE)",
-        r"(?i)(vergiss|verwirf|übergehe?|überschreibe?|missachte|setze?\s+außer\s+Kraft|hebe?\s+auf)\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?|bestehenden?|aktuellen?|ursprünglichen?)\s+(Anweisungen?|Regeln?|Instruktionen?|Befehle?|Richtlinien?|Vorgaben?|Vorschriften?)",
+        r"(?i)(vergiss|verwirf|uebergehe?|ueberschreibe?|missachte|setze?\s+ausser\s+Kraft|hebe?\s+auf)\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?|bestehenden?|aktuellen?|urspruenglichen?)\s+(Anweisungen?|Regeln?|Instruktionen?|Befehle?|Richtlinien?|Vorgaben?|Vorschriften?)",
         Severity.CRITICAL,
         "Prompt Injection",
         "BLOCKIEREN: Synonym-basierte Prompt-Injection auf Deutsch erkannt.",
@@ -146,173 +131,168 @@ PROMPT_INJECTION_PATTERNS = [
         "Prompt Injection",
         "Attempt to reset the agent's instruction context via indirect phrasing.",
     ),
-    # --- v0.4.0: Advanced Injection Patterns ---
     (
         "System/Admin Tag Injection",
         r"(?i)\[\s*(?:SYSTEM|ADMIN|IMPORTANT|PRIORITY|OVERRIDE|EMERGENCY|ROOT|SUPERUSER|MODERATOR)\s*\]",
         Severity.CRITICAL,
         "Prompt Injection",
-        "BLOCK: Fake authority tag detected (e.g., [SYSTEM], [ADMIN]). Attackers embed these in user input to impersonate system-level instructions and hijack agent behavior.",
+        "BLOCK: Fake authority tag detected (e.g., [SYSTEM], [ADMIN]).",
     ),
     (
         "Agent-Worm Propagation",
         r"(?i)(all\s+agents?\s+must|forward\s+this\s+to\s+all|spread\s+this\s+(message|instruction)|automated\s+instruction|replicate\s+this\s+(to|across)|inject\s+into\s+(all|every)\s+(?:other\s+)?(agents?|conversations?|sessions?)|inject\s+into\s+other\s+(agents?|conversations?|sessions?))",
         Severity.CRITICAL,
         "Prompt Injection",
-        "CRITICAL: Agent-worm propagation pattern detected. This instruction attempts to self-replicate across multiple agents or conversations — a multi-agent attack vector.",
+        "CRITICAL: Agent-worm propagation pattern detected.",
     ),
     (
         "Base64 Encoded Payload",
         r"(?i)(?:base64[:\s]+[A-Za-z0-9+/]{20,}={0,2}|decode\s+(?:this|the\s+following)\s*:\s*[A-Za-z0-9+/]{20,}={0,2}|(?:execute|run|eval)\s+(?:the\s+)?(?:base64|encoded)\s+(?:string|payload|command|instruction)|(?:execute|run|eval)\s+(?:the\s+)?(?:base64)\s+encoded\s+\w+)",
         Severity.HIGH,
         "Prompt Injection",
-        "Base64-encoded payload or decode instruction detected. Attackers use encoding to smuggle malicious instructions past text-based filters.",
+        "Base64-encoded payload or decode instruction detected.",
     ),
 ]
 
 DANGEROUS_COMMAND_PATTERNS = [
-    # --- Shell / System Commands ---
     (
         "Destructive Shell Command",
         r"(?:rm\s+-[rRf]{1,3}\s+[\\/]|mkfs\s|dd\s+if=|format\s+[A-Z]:|\:\(\)\s*\{\s*\:\|\:\s*\&\s*\})",
         Severity.CRITICAL,
         "Dangerous Command",
-        "CRITICAL: Destructive system command detected (disk wipe, fork bomb, or recursive delete).",
+        "CRITICAL: Destructive system command detected.",
     ),
     (
         "Remote Code Execution",
         r"(?:curl\s+.{0,100}\|\s*(?:ba)?sh|wget\s+.{0,100}\|\s*(?:ba)?sh|python[3]?\s+-c\s+['\"].*(?:exec|eval|import\s+os))",
         Severity.CRITICAL,
         "Dangerous Command",
-        "CRITICAL: Pipe-to-shell pattern detected. This downloads and executes remote code without inspection.",
+        "CRITICAL: Pipe-to-shell pattern detected.",
     ),
     (
         "Reverse Shell",
         r"(?:(?:bash|sh|nc|ncat)\s+.{0,50}(?:\/dev\/tcp|mkfifo|nc\s+-[elp])|python[3]?\s+-c\s+['\"].*socket.*connect)",
         Severity.CRITICAL,
         "Dangerous Command",
-        "CRITICAL: Reverse shell pattern detected. An attacker is attempting to gain remote command access.",
+        "CRITICAL: Reverse shell pattern detected.",
     ),
     (
         "Privilege Escalation",
         r"(?:sudo\s+(?:su|chmod\s+[0-7]*777|chown\s+root)|chmod\s+[0-7]*4[0-7]{3}\s|SUID|setuid)",
         Severity.HIGH,
         "Dangerous Command",
-        "Privilege escalation attempt detected. The command tries to elevate system permissions.",
+        "Privilege escalation attempt detected.",
     ),
     (
         "Package / Dependency Install",
         r"(?:pip\s+install|npm\s+install|apt\s+install|yum\s+install|brew\s+install)\s+(?!--help)",
         Severity.MEDIUM,
         "Dangerous Command",
-        "Software installation command detected. Verify the package source for supply-chain safety.",
+        "Software installation command detected. Verify the package source.",
     ),
 ]
 
-# --- v0.2.0: Python Code Obfuscation Patterns ---
 PYTHON_OBFUSCATION_PATTERNS = [
     (
         "Python getattr Obfuscation",
         r"(?:getattr\s*\(\s*\w+\s*,\s*['\"].+['\"]\s*\))",
         Severity.CRITICAL,
         "Code Obfuscation",
-        "CRITICAL: Python getattr() used to dynamically resolve functions. This is a common technique to bypass static code analysis (e.g., getattr(os, 'sys'+'tem')).",
+        "CRITICAL: Python getattr() used to dynamically resolve functions.",
     ),
     (
         "Python eval/exec",
         r"(?:(?:eval|exec|compile)\s*\(\s*(?:['\"]|[a-zA-Z_]))",
         Severity.CRITICAL,
         "Code Obfuscation",
-        "CRITICAL: Dynamic code execution via eval()/exec()/compile(). This can execute arbitrary obfuscated payloads.",
+        "CRITICAL: Dynamic code execution via eval()/exec()/compile().",
     ),
     (
         "Python __import__",
         r"(?:__import__\s*\(|importlib\.import_module\s*\()",
         Severity.HIGH,
         "Code Obfuscation",
-        "Dynamic module import detected. Used to load dangerous modules (os, subprocess, socket) at runtime.",
+        "Dynamic module import detected.",
     ),
     (
         "Python String Concatenation Bypass",
         r"(?:['\"][a-z]{1,6}['\"]\s*\+\s*['\"][a-z]{1,6}['\"])",
         Severity.MEDIUM,
         "Code Obfuscation",
-        "String concatenation pattern detected (e.g., 'sys'+'tem'). Often used to evade keyword-based filters.",
+        "String concatenation pattern detected.",
     ),
     (
         "Python Dangerous File I/O",
         r"(?:open\s*\(\s*['\"]?\/(?:etc|proc|sys|dev|root|home|tmp|var|data)[\/'\"]|open\s*\(\s*['\"].*(?:shadow|passwd|id_rsa|authorized_keys|\.env|config|secret|token|key))",
         Severity.CRITICAL,
         "Code Obfuscation",
-        "CRITICAL: Python file read targeting sensitive system paths or credential files.",
+        "CRITICAL: Python file read targeting sensitive system paths.",
     ),
     (
         "Python subprocess/os.system",
         r"(?:(?:subprocess|os)\s*\.\s*(?:system|popen|call|run|Popen|exec[lv]?[pe]?)\s*\()",
         Severity.CRITICAL,
         "Code Obfuscation",
-        "CRITICAL: Direct OS command execution via Python subprocess/os module.",
+        "CRITICAL: Direct OS command execution via Python.",
     ),
     (
         "Python Socket Connection",
         r"(?:socket\.(?:socket|create_connection|connect)\s*\(|from\s+socket\s+import)",
         Severity.HIGH,
         "Code Obfuscation",
-        "Network socket creation detected. Could be used for reverse shells or data exfiltration.",
+        "Network socket creation detected.",
     ),
-    # --- v0.3.0: Ghost Exploit Defense ---
     (
         "Python Magic Attributes",
         r"(?:__builtins__|__globals__|__subclasses__|__class__|__bases__|__mro__|__dict__)",
         Severity.CRITICAL,
         "Code Obfuscation",
-        "CRITICAL: Access to Python magic attributes detected. This is a reflection-based attack to bypass import restrictions and access dangerous builtins.",
+        "CRITICAL: Access to Python magic attributes detected.",
     ),
     (
         "Python setattr/delattr Reflection",
         r"(?:(?:setattr|delattr)\s*\(\s*\w+\s*,\s*['\"])",
         Severity.HIGH,
         "Code Obfuscation",
-        "Dynamic attribute manipulation via setattr/delattr. Can be used to inject malicious functions at runtime.",
+        "Dynamic attribute manipulation via setattr/delattr.",
     ),
     (
         "Suspicious open() in Agent Input",
         r"(?:open\s*\(\s*['\"]|open\s*\(\s*[a-zA-Z_]+\s*[,\)]|\['open'\]|\[\"open\"\])",
         Severity.HIGH,
         "Code Obfuscation",
-        "File open() call detected in agent input. In an agent context, direct file operations are suspicious and should be reviewed.",
+        "File open() call detected in agent input.",
     ),
     (
         "Multi-Part String Assembly",
         r"(?:['\"][^'\"]{1,8}['\"]\s*\+\s*['\"][^'\"]{1,8}['\"]\s*\+\s*['\"][^'\"]{1,8}['\"])",
         Severity.HIGH,
         "Code Obfuscation",
-        "Three or more short string fragments concatenated. Classic obfuscation technique to hide API keys, commands, or module names from static analysis.",
+        "Three or more short string fragments concatenated.",
     ),
 ]
 
 DATA_EXFILTRATION_PATTERNS = [
-    # --- Secrets & API Keys ---
     (
         "API Key Leak",
         r"(?:(?:api[_-]?key|apikey|api[_-]?secret|access[_-]?token|auth[_-]?token|bearer)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,})",
         Severity.CRITICAL,
         "Data Exfiltration",
-        "CRITICAL: Hardcoded API key or access token found. This credential should be rotated immediately.",
+        "CRITICAL: Hardcoded API key or access token found.",
     ),
     (
         "Private Key Material",
         r"(?:-----BEGIN\s+(?:RSA|EC|DSA|OPENSSH|PGP)?\s*PRIVATE\s+KEY-----)",
         Severity.CRITICAL,
         "Data Exfiltration",
-        "CRITICAL: Private key material detected in text. This key is compromised and must be revoked.",
+        "CRITICAL: Private key material detected in text.",
     ),
     (
         "Password in Cleartext",
         r"(?i)(?:password|passwort|passwd|kennwort|pwd)\s*[:=]\s*['\"]?[^\s'\"]{4,}",
         Severity.HIGH,
         "Data Exfiltration",
-        "Cleartext password detected. Never store or transmit passwords in plain text.",
+        "Cleartext password detected.",
     ),
     (
         "Database Connection String",
@@ -326,61 +306,59 @@ DATA_EXFILTRATION_PATTERNS = [
         r"(?:(?:send|forward|mail|email|sende?n?)\s+(?:to|an|nach)\s+[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,})",
         Severity.MEDIUM,
         "Data Exfiltration",
-        "Instruction to send data to an external email address. Verify recipient before proceeding.",
+        "Instruction to send data to an external email address.",
     ),
     (
         "Webhook Exfiltration",
         r"(?:(?:https?:\/\/)?(?:hooks\.slack\.com|discord(?:app)?\.com\/api\/webhooks|webhook\.site|requestbin|pipedream)\/[^\s]+)",
         Severity.HIGH,
         "Data Exfiltration",
-        "Outbound webhook URL detected. Data may be exfiltrated to an external service.",
+        "Outbound webhook URL detected.",
     ),
-    # --- v0.4.0: Markdown Image Exfiltration ---
     (
         "Markdown Image Exfiltration",
         r"!\[[^\]]*\]\(\s*https?:\/\/[^\s\)]+(?:\?[^\s\)]*(?:data|token|key|secret|password|api|session|cookie|auth|user|content|exfil|steal|leak)[^\s\)]*)\)",
         Severity.CRITICAL,
         "Data Exfiltration",
-        "CRITICAL: Markdown image tag with suspicious query parameters detected. This technique renders an invisible image that exfiltrates data (API keys, session tokens, content) to an attacker's server via URL parameters.",
+        "CRITICAL: Markdown image tag with suspicious query parameters detected.",
     ),
 ]
 
 SOCIAL_ENGINEERING_PATTERNS = [
     (
         "Urgency Manipulation",
-        r"(?i)(urgent|immediately|right\s+now|sofort|dringend|jetzt\s+sofort|without\s+delay|ohne\s+Verzögerung).{0,80}(send|execute|run|delete|pay|transfer|sende?n?|ausführen|löschen|zahlen|überweisen)",
+        r"(?i)(urgent|immediately|right\s+now|sofort|dringend|jetzt\s+sofort|without\s+delay|ohne\s+Verzoegerung).{0,80}(send|execute|run|delete|pay|transfer|sende?n?|ausfuehren|loeschen|zahlen|ueberweisen)",
         Severity.MEDIUM,
         "Social Engineering",
-        "Urgency + action pattern detected. Pressure tactics are a common social engineering technique.",
+        "Urgency + action pattern detected.",
     ),
     (
         "Authority Impersonation",
         r"(?i)(i\s+am\s+(?:your|the)\s+(?:\w+\s+)?(?:admin(?:istrator)?|owner|creator|developer|boss|CEO|moderator|supervisor|manager)|ich\s+bin\s+(?:dein|der)\s+(?:\w+\s+)?(?:Admin(?:istrator)?|Besitzer|Ersteller|Entwickler|Chef|Moderator))",
         Severity.HIGH,
         "Social Engineering",
-        "Authority impersonation detected. Verify the claimed identity through a separate channel.",
+        "Authority impersonation detected.",
     ),
     (
         "Confidentiality Trap",
-        r"(?i)(don't\s+tell|do\s+not\s+share|keep\s+this\s+(secret|private|between\s+us)|sag\s+(das\s+)?niemandem|behalte?\s+(das\s+)?für\s+dich)",
+        r"(?i)(don't\s+tell|do\s+not\s+share|keep\s+this\s+(secret|private|between\s+us)|sag\s+(das\s+)?niemandem|behalte?\s+(das\s+)?fuer\s+dich)",
         Severity.MEDIUM,
         "Social Engineering",
-        "Secrecy instruction detected. Legitimate requests don't require concealment from the system owner.",
+        "Secrecy instruction detected.",
     ),
-    # --- v0.4.0: Advanced Social Engineering ---
     (
         "Authority Claim",
         r"(?i)(as\s+(?:the|an?|your)\s+(?:\w+\s+)?(?:administrator|moderator|supervisor|manager|authorized\s+(?:user|person|agent))|i\s+(?:am|have\s+been)\s+authorized\s+(?:to|by)|with\s+(?:admin|root|elevated)\s+(?:access|privileges?|permissions?)|speaking\s+(?:as|on\s+behalf\s+of)\s+(?:the\s+)?(?:system|admin|management))",
         Severity.HIGH,
         "Social Engineering",
-        "Authority claim detected. The input asserts elevated permissions or authorization that cannot be verified through text alone. Always verify claimed roles through proper authentication.",
+        "Authority claim detected.",
     ),
     (
         "Credential Phishing",
         r"(?i)(your\s+(?:API\s+key|password|token|credentials?|account|session)\s+(?:has\s+)?(?:expired|been\s+(?:compromised|revoked|suspended|locked|disabled|reset))|(?:verify|confirm|re-?enter|provide|update)\s+your\s+(?:password|credentials?|API\s+key|token|login)|(?:click\s+here|visit\s+this\s+link|go\s+to)\s+to\s+(?:verify|restore|unlock|reactivate)\s+your\s+account)",
         Severity.HIGH,
         "Social Engineering",
-        "Credential phishing pattern detected. This message attempts to trick users or agents into revealing authentication credentials by creating a false sense of urgency about account security.",
+        "Credential phishing pattern detected.",
     ),
 ]
 
@@ -393,7 +371,7 @@ ALL_PATTERNS = (
 )
 
 
-# ─── Scanner Engine ──────────────────────────────────────────────────────────
+# --- Scanner Engine ---
 
 def scan_text(text: str, source: str = "stdin") -> ScanReport:
     """Scan a block of text against all security patterns."""
@@ -408,7 +386,6 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         for name, pattern, severity, category, recommendation in ALL_PATTERNS:
             for match in re.finditer(pattern, line):
                 matched = match.group(0)
-                # Build context: show a snippet around the match
                 start = max(0, match.start() - 30)
                 end = min(len(line), match.end() + 30)
                 context = ("..." if start > 0 else "") + line[start:end] + ("..." if end < len(line) else "")
@@ -417,7 +394,7 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
                     severity=severity,
                     category=category,
                     pattern_name=name,
-                    matched_text=matched[:120],  # Truncate very long matches
+                    matched_text=matched[:120],
                     line_number=line_num,
                     context=context.strip(),
                     recommendation=recommendation,
@@ -451,146 +428,3 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         report.risk_level = "CRITICAL"
 
     return report
-
-
-# ─── Output Formatters ───────────────────────────────────────────────────────
-
-SEVERITY_ICONS = {
-    "LOW": "🟢",
-    "MEDIUM": "🟡",
-    "HIGH": "🟠",
-    "CRITICAL": "🔴",
-}
-
-RISK_ICONS = {
-    "CLEAN": "✅",
-    "LOW": "🟢",
-    "MEDIUM": "🟡",
-    "HIGH": "🟠",
-    "CRITICAL": "🔴",
-}
-
-
-def format_human(report: ScanReport) -> str:
-    """Format the report for human-readable terminal output."""
-    icon = RISK_ICONS.get(report.risk_level, "❓")
-    lines = [
-        "",
-        "═" * 64,
-        f"  🛡️  ClawGuard v0.4.0 – Security Scan Report",
-        "═" * 64,
-        f"  Timestamp : {report.timestamp}",
-        f"  Source    : {report.source}",
-        f"  Lines     : {report.total_lines}",
-        f"  Findings  : {report.total_findings}",
-        f"  Risk Score: {report.risk_score}/10  {icon} {report.risk_level}",
-        "─" * 64,
-    ]
-
-    if not report.findings:
-        lines.append("  ✅ No threats detected. Input appears safe.")
-    else:
-        for i, f in enumerate(report.findings, start=1):
-            sev_icon = SEVERITY_ICONS.get(f.severity.value, "❓")
-            lines.append(f"\n  [{i}] {sev_icon} {f.severity.value} – {f.pattern_name}")
-            lines.append(f"      Category : {f.category}")
-            lines.append(f"      Line     : {f.line_number}")
-            lines.append(f"      Match    : \"{f.matched_text}\"")
-            lines.append(f"      Context  : {f.context}")
-            lines.append(f"      Action   : {f.recommendation}")
-
-    lines.append("")
-    lines.append("═" * 64)
-
-    if report.risk_score >= 7:
-        lines.append("  ⛔ RECOMMENDATION: BLOCK this input. Do NOT forward to agent.")
-    elif report.risk_score >= 4:
-        lines.append("  ⚠️  RECOMMENDATION: Review manually before forwarding.")
-    elif report.risk_score >= 1:
-        lines.append("  ℹ️  RECOMMENDATION: Low risk. Monitor but likely safe.")
-    else:
-        lines.append("  ✅ RECOMMENDATION: Input is clean. Safe to process.")
-
-    lines.append("═" * 64)
-    lines.append("")
-    return "\n".join(lines)
-
-
-def format_json(report: ScanReport) -> str:
-    """Format the report as machine-readable JSON."""
-    data = {
-        "clawguard_version": "0.4.0",
-        "timestamp": report.timestamp,
-        "source": report.source,
-        "total_lines": report.total_lines,
-        "total_findings": report.total_findings,
-        "risk_score": report.risk_score,
-        "risk_level": report.risk_level,
-        "findings": [
-            {
-                "severity": f.severity.value,
-                "category": f.category,
-                "pattern_name": f.pattern_name,
-                "matched_text": f.matched_text,
-                "line_number": f.line_number,
-                "context": f.context,
-                "recommendation": f.recommendation,
-            }
-            for f in report.findings
-        ],
-    }
-    return json.dumps(data, indent=2, ensure_ascii=False)
-
-
-# ─── CLI Entry Point ─────────────────────────────────────────────────────────
-
-def main():
-    # Fix emoji output on Windows (cp1252 can't encode Unicode symbols)
-    if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
-    parser = argparse.ArgumentParser(
-        description="🛡️  ClawGuard – The Firewall for Autonomous AI Agents",
-        epilog="(c) 2026 Jörg Michno. Zero dependencies. Zero cost. Maximum security.",
-    )
-    parser.add_argument("file", nargs="?", help="Text file to scan")
-    parser.add_argument("--stdin", action="store_true", help="Read from standard input")
-    parser.add_argument("--json", action="store_true", help="Output report as JSON (for automation)")
-    parser.add_argument("--version", action="version", version="ClawGuard v0.4.0")
-
-    args = parser.parse_args()
-
-    # Determine input source
-    if args.file:
-        try:
-            with open(args.file, "r", encoding="utf-8", errors="replace") as f:
-                text = f.read()
-            source = args.file
-        except FileNotFoundError:
-            print(f"Error: File not found: {args.file}", file=sys.stderr)
-            sys.exit(2)
-        except PermissionError:
-            print(f"Error: Permission denied: {args.file}", file=sys.stderr)
-            sys.exit(2)
-    elif args.stdin or not sys.stdin.isatty():
-        text = sys.stdin.read()
-        source = "stdin"
-    else:
-        parser.print_help()
-        sys.exit(2)
-
-    # Run the scan
-    report = scan_text(text, source=source)
-
-    # Output the report
-    if args.json:
-        print(format_json(report))
-    else:
-        print(format_human(report))
-
-    # Exit code: 0 = clean, 1 = threats found
-    sys.exit(0 if report.total_findings == 0 else 1)
-
-
-if __name__ == "__main__":
-    main()

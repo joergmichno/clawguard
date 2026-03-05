@@ -1,0 +1,12 @@
+LICENSE
+README.md
+pyproject.toml
+src/clawguard_core/__init__.py
+src/clawguard_core/_engine.py
+src/clawguard_core.egg-info/PKG-INFO
+src/clawguard_core.egg-info/SOURCES.txt
+src/clawguard_core.egg-info/dependency_links.txt
+src/clawguard_core.egg-info/top_level.txt
+tests/test_formatters.py
+tests/test_patterns.py
+tests/test_scanner.py

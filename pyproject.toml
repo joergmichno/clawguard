@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clawguard-core"
+version = "0.4.0"
+description = "Security scanner for AI agents — 42+ regex patterns detecting prompt injections, jailbreaks, data exfiltration, and social engineering. Zero dependencies, <10ms."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    {name = "Joerg Michno", email = "michno.jrg@gmail.com"},
+]
+keywords = [
+    "ai-security",
+    "prompt-injection",
+    "llm-security",
+    "ai-agent",
+    "security-scanner",
+    "clawguard",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/joergmichno/clawguard"
+Documentation = "https://prompttools.co/api/v1/"
+Repository = "https://github.com/joergmichno/clawguard"
+"Bug Tracker" = "https://github.com/joergmichno/clawguard/issues"
+"Live Demo" = "https://prompttools.co"
+
+[tool.setuptools.packages.find]
+where = ["src"]

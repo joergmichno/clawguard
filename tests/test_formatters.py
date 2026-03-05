@@ -70,7 +70,7 @@ class TestJsonFormatter:
         """The JSON output should include the ClawGuard version string."""
         report: ScanReport = scan_text("hello", source="test")
         data: Dict[str, Any] = json.loads(format_json(report))
-        assert data["clawguard_version"] == "0.3.0"
+        assert data["clawguard_version"] == "0.4.0"
 
     def test_json_source_matches_input(self) -> None:
         """The source field in JSON should match what was passed to scan_text."""
